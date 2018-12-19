@@ -156,20 +156,20 @@ const whatToDo = {
     'ExpressionStatement': function(node, evals){
         let expr = node.expression;
         let id, left, right;
-        if(expr.type === 'UpdateExpression'){
-            id = expr.argument.name; left = expr.argument;
-            right = {type: 'BinaryExpression', operator: expr.operator === '++'? '+':'-', left: expr.argument, right: {type: 'Literal', value: 1,raw: '1' } };}
-        else if (expr.type === 'AssignmentExpression'){
-            id = expr.left.name; left = expr.left; right = expr.right;
-        }
+        id = expr.type === 'UpdateExpression'? expr.argument.name:expr.left.name;
         if(evals[id]){
+            if(expr.type === 'UpdateExpression'){
+                left = expr.argument;
+                right = {type: 'BinaryExpression', operator: expr.operator === '++'? '+':'-', left: expr.argument, right: {type: 'Literal', value: 1,raw: '1' } };}
+            else /* if (expr.type === 'AssignmentExpression')*/{
+                left = expr.left; right = expr.right;
+            }
             let newValue = effect(evals, right);
             evals[left.name] = newValue;
             return [null, evals];
         }
-
-        let newRight = effect(evals, right);
-        node.right = newRight;
+        if(expr.type === 'UpdateExpression') return [node,evals];
+        node.right = effect(evals, expr.right);
         return [node, evals];
     },
     'UpdateExpression': function(node, evals){
@@ -264,7 +264,7 @@ const labelIFStatements = (node, args)=>{
                 GLOBALS[declarator.id.name] = parser.evaluate(escodegen.generate(declarator.init));
             }
         }
-        else if(statement.type === 'FunctionDeclaration'){
+        else /*if(statement.type === 'FunctionDeclaration')*/{
             extracted(statement, IV, args);
             labelIfAndEval(statement, IV, GLOBALS);
             break;
@@ -334,6 +334,7 @@ const findIF = {
         //window.alert(JSON.stringify(IV));
         let group = IV.hasOwnProperty(node.left.name)?
             IV:GLOBALS;
+
         let context = getContext(IV,GLOBALS);
         group[node.left.name] = parser.evaluate(escodegen.generate(node.right), context);
         return [IV,GLOBALS];
@@ -350,6 +351,8 @@ const getContext = (IV, GLOBALS)=>{
         //window.alert(property);
         context[property] = IV[property];
     }
+    // window.alert(JSON.stringify(context));
+    // window.alert(JSON.stringify(GLOBALS));
     for(const property in GLOBALS){
         if(!context.hasOwnProperty(property)) context[property] = GLOBALS[property];
     }

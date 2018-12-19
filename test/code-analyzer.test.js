@@ -55,15 +55,33 @@ describe('The removeLocals function', ()=> {
             JSON.stringify(parsedOutCode));
     });
 
+    it('is not removing global variables vars from functions', () => {
+        let inCode = 'function foo(x, y, z){\n' +
+            'x++;\n' +
+            'return x;\n' +
+            '}\n';
+        let outCode = 'function foo(x, y, z) {\n' +
+            'x++;\n' +
+            'return x;\n' +
+            '}';
+        let parsedInCode = parseCodeWithoutLoc(inCode);
+        let parsedOutCode = parseCodeWithoutLoc(outCode);
+        let withoustLocals = removeLocals(parsedInCode);
+        assert.equal(
+            JSON.stringify(withoustLocals),
+            JSON.stringify(parsedOutCode));
+    });
+
     it('is removing local vars from functions', () => {
         let inCode = 'function foo(x, y, z){\n' +
             '    let a = x + 1;\n' +
             '    let b = a + y;\n' +
-            '    let c = b++;\n' +
-            '    return c;\n' +
+            '    let c = b--;\n' +
+            '    let d = b++;\n' +
+            '    return c + d;\n' +
             '}';
         let outCode = 'function foo(x, y, z) {\n' +
-            'return x + 1 + y + 1;\n' +
+            'return x + 1 + y - 1 + (x + 1 + y - 1 + 1);\n' +
             '}';
         let parsedInCode = parseCodeWithoutLoc(inCode);
         let parsedOutCode = parseCodeWithoutLoc(outCode);
@@ -312,6 +330,19 @@ describe('labelIFStatements', () => {
         let inputsplitted = ['1','2','3'];
         let code = 'function foo(x, y, z) {\n' +
             'return [1];\n' +
+            '}';
+
+        let [greens, reds] = labelIFStatements(parseCode(code), inputsplitted);
+        assert.equal(greens.toString(),[].toString());
+        assert.equal(reds.toString(),[].toString());
+    });
+
+    it('is true if statements with green', () => {
+        let inputsplitted = ['1','2','3'];
+        let code = 'let x = 0;\n' +
+            'function foo(x, y, z) {\n' +
+            'y = x + 1;\n' +
+            'return a;\n' +
             '}';
 
         let [greens, reds] = labelIFStatements(parseCode(code), inputsplitted);
