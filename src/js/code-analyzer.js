@@ -46,8 +46,7 @@ const parseCodeWithoutLoc = (codeToParse) => {
 //value is of type Literal | BinaryExpression | Identifier | MemberExpression | UnaryExpression | UpdateExpression
 //returns new value
 function effect(evals, value){
-    let newValue = evalByType[value.type](value, evals);
-    return newValue;
+    return evalByType[value.type](value, evals);
 
 }
 
@@ -135,9 +134,26 @@ const removeLocals = (node )=>{
 };
 
 const getNewEvals = (node, evals)=>{
-    //window.alert(JSON.stringify(node));
     return whatToDo[node.type](node, evals);
 };
+
+function extracted2(expr, left, right, evals) {
+    if (expr.type === 'UpdateExpression') {
+        left = expr.argument;
+        right = {
+            type: 'BinaryExpression',
+            operator: expr.operator === '++' ? '+' : '-',
+            left: expr.argument,
+            right: {type: 'Literal', value: 1, raw: '1'}
+        };
+    }
+    else /* if (expr.type === 'AssignmentExpression')*/{
+        left = expr.left;
+        right = expr.right;
+    }
+    let newValue = effect(evals, right);
+    return {left, newValue};
+}
 
 const whatToDo = {
     //defining locals
@@ -158,13 +174,9 @@ const whatToDo = {
         let id, left, right;
         id = expr.type === 'UpdateExpression'? expr.argument.name:expr.left.name;
         if(evals[id]){
-            if(expr.type === 'UpdateExpression'){
-                left = expr.argument;
-                right = {type: 'BinaryExpression', operator: expr.operator === '++'? '+':'-', left: expr.argument, right: {type: 'Literal', value: 1,raw: '1' } };}
-            else /* if (expr.type === 'AssignmentExpression')*/{
-                left = expr.left; right = expr.right;
-            }
-            let newValue = effect(evals, right);
+            const __ret = extracted2(expr, left, right, evals);
+            left = __ret.left;
+            let newValue = __ret.newValue;
             evals[left.name] = newValue;
             return [null, evals];
         }
@@ -215,9 +227,7 @@ const whatToDo = {
         for(let i=0; i<node.body.body.length; i++){
             let assignment = node.body.body[i];
             let newAssignment;
-            //window.alert(JSON.stringify(assignment));
             [newAssignment, newEvals] = getNewEvals(assignment,newEvals);
-            //window.alert(JSON.stringify(newAssignment));
 
             // if(newAssignment != null)
             newWhileBodyBody.push(newAssignment);
@@ -289,7 +299,6 @@ const findIF = {
     'IfStatement': function(node, IV, GLOBALS){
         //let safeeval = safeEval()
 
-        //window.alert(JSON.stringify(node));
         let context = getContext(IV,GLOBALS);
         [IV, GLOBALS] = labelIfAndEval(node.consequent, IV, GLOBALS);
         if( parser.evaluate( escodegen.generate(node.test), context) )  {
@@ -331,7 +340,6 @@ const findIF = {
         return [IV,GLOBALS];
     },
     'AssignmentExpression':function(node, IV, GLOBALS) {
-        //window.alert(JSON.stringify(IV));
         let group = IV.hasOwnProperty(node.left.name)?
             IV:GLOBALS;
 
@@ -348,31 +356,14 @@ const findIF = {
 const getContext = (IV, GLOBALS)=>{
     let context = {};
     for(const property in IV){
-        //window.alert(property);
         context[property] = IV[property];
     }
-    // window.alert(JSON.stringify(context));
-    // window.alert(JSON.stringify(GLOBALS));
     for(const property in GLOBALS){
         if(!context.hasOwnProperty(property)) context[property] = GLOBALS[property];
     }
     return context;
 
 };
-//
-// const insertValues = (string, IV, GLOBALS)=>{
-//     for(const property in IV){
-//         string.replace(property,IV[property]);
-//     }
-//     for(const property in GLOBALS){
-//         string.replace(property,GLOBALS[property]);
-//     }
-//     return string;
-// };
 
-// const safeEvalGames = ()=>{
-//     let x = 'x + 0';
-//     window.alert(safeEval(x,{x:1}));
-// };
 
 export {parseCode,parseCodeWithoutLoc, removeLocals, labelIFStatements};
