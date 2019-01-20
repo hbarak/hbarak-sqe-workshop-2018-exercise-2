@@ -246,8 +246,8 @@ const whatToDo = {
         for(let i=0; i<node.body.length; i++){
             let newNode, newEvals=evals;
             [newNode, newEvals] = getNewEvals(node.body[i],newEvals);
-            // if(newNode != null)
-            newBody.push(newNode);
+            if(newNode != null)
+                newBody.push(newNode);
         }
         node.body = newBody;
         return [node, evals];
@@ -297,6 +297,7 @@ const findIF = {
         return [IV,GLOBALS];
     },
     'IfStatement': function(node, IV, GLOBALS){
+
         //let safeeval = safeEval()
 
         let context = getContext(IV,GLOBALS);
@@ -333,7 +334,6 @@ const findIF = {
     'UpdateExpression':function(node, IV, GLOBALS) {
         let group = IV.hasOwnProperty(node.argument.name)?
             IV:GLOBALS;
-
         group[node.argument.name] = node.operator === '++' ?
             parser.evaluate(group[node.argument.name] + '+1') : parser.evaluate(group[node.argument.name] + '-1');
 
