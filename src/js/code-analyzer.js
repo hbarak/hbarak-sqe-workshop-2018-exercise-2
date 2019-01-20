@@ -246,8 +246,8 @@ const whatToDo = {
         for(let i=0; i<node.body.length; i++){
             let newNode, newEvals=evals;
             [newNode, newEvals] = getNewEvals(node.body[i],newEvals);
-            if(newNode != null)
-                newBody.push(newNode);
+            // if(newNode != null)
+            newBody.push(newNode);
         }
         node.body = newBody;
         return [node, evals];
